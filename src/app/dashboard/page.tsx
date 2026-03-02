@@ -8,30 +8,35 @@ interface Lead {
   id: number;
   nombre: string;
   email: string;
-  telefono: string;
+  telefono: string | null;
   mensaje: string;
   created_at: string;
 }
 
 export default async function Dashboard() {
-  const cookieStore = cookies();
+  // ✅ En Next.js 16 cookies() puede ser async
+  const cookieStore = await cookies();
   const token = cookieStore.get("authToken")?.value;
 
+  // ✅ Si no hay token → redirigir
   if (!token) {
     redirect("/login");
   }
 
+  // ✅ Validar variable de entorno
   if (!process.env.JWT_SECRET) {
     throw new Error("JWT_SECRET no está definido en variables de entorno");
   }
 
   try {
+    // ✅ Verificar token JWT
     jwt.verify(token, process.env.JWT_SECRET);
-  } catch {
+  } catch (error) {
+    // ✅ Si el token es inválido o expirado
     redirect("/login");
   }
 
-  // ✅ Consulta incluyendo telefono
+  // ✅ Consulta segura a la base de datos
   const result = await query(`
     SELECT id, nombre, email, telefono, mensaje, created_at
     FROM leads
@@ -71,7 +76,7 @@ export default async function Dashboard() {
                   <td className="p-2 border">{lead.nombre}</td>
                   <td className="p-2 border">{lead.email}</td>
                   <td className="p-2 border">
-                    {lead.telefono ? lead.telefono : "—"}
+                    {lead.telefono ?? "—"}
                   </td>
                   <td className="p-2 border">{lead.mensaje}</td>
                   <td className="p-2 border">
