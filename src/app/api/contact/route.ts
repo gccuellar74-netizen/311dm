@@ -1,22 +1,77 @@
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import { query } from "@/lib/db";
+import { rateLimit } from "@/lib/rate-limit";
+
 
 /**
  * POST /api/contact
  * Recibe datos del formulario de contacto,
- * los valida, guarda en base de datos y envía notificación por email.
+ * valida, guarda en BD y envía notificación.
  */
+
+
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
 
-    const { nombre, email, telefono, mensaje } = body as {
+    // Obtener IP real en Vercel
+const ip =
+  req.headers.get("x-forwarded-for")?.split(",")[0] ||
+  "unknown";
+
+// ✅ Rate limiting
+const limit = await rateLimit(ip);
+
+if (!limit.success) {
+  return NextResponse.json(
+    { error: "Demasiadas solicitudes. Intenta nuevamente más tarde." },
+    { status: 429 }
+  );
+}
+
+    const body = await req.json();
+        const { recaptchaToken } = body;
+
+        if (!recaptchaToken) {
+          return NextResponse.json(
+            { error: "Token de reCAPTCHA faltante." },
+            { status: 400 }
+          );
+        }
+
+        // Verificación con Google
+        const recaptchaResponse = await fetch(
+          "https://www.google.com/recaptcha/api/siteverify",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: `secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`,
+          }
+        );
+
+        const recaptchaData = await recaptchaResponse.json();
+
+        // Validar score (v3 usa score)
+        if (!recaptchaData.success || recaptchaData.score < 0.5) {
+          return NextResponse.json(
+            { error: "Verificación reCAPTCHA fallida." },
+            { status: 403 }
+          );
+        }
+    let { nombre, email, telefono, mensaje } = body as {
       nombre: string;
       email: string;
       telefono: string;
       mensaje: string;
     };
+
+    // ✅ Sanitización básica contra XSS
+    nombre = nombre?.trim();
+    email = email?.trim().toLowerCase();
+    telefono = telefono?.trim();
+    mensaje = mensaje?.trim();
 
     // ✅ Validación de campos obligatorios
     if (!nombre || !email || !telefono || !mensaje) {
@@ -26,7 +81,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ✅ Validación de formato de email
+    // ✅ Validación email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return NextResponse.json(
@@ -35,7 +90,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ✅ Validación de teléfono (7 a 15 caracteres, números + espacio +)
+    // ✅ Validación teléfono
     const phoneRegex = /^[0-9+ ]{7,15}$/;
     if (!phoneRegex.test(telefono)) {
       return NextResponse.json(
@@ -44,7 +99,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ✅ Inserción segura en base de datos (protección SQL Injection)
+    // ✅ Insert seguro (protección contra SQL Injection)
     const result = await query(
       `INSERT INTO leads (nombre, email, telefono, mensaje)
        VALUES ($1, $2, $3, $4)
@@ -52,38 +107,50 @@ export async function POST(req: NextRequest) {
       [nombre, email, telefono, mensaje]
     );
 
-    const leadId = result.rows[0].id;
-
-    // ✅ Validación de variables de entorno críticas
-    if (
-      !process.env.SMTP_HOST ||
-      !process.env.SMTP_PORT ||
-      !process.env.SMTP_USER ||
-      !process.env.SMTP_PASS ||
-      !process.env.CONTACT_RECEIVER
-    ) {
-      console.error("Faltan variables de entorno SMTP.");
+    if (!result || !result.rows || result.rows.length === 0) {
+      console.error("Error al insertar en BD:", result);
       return NextResponse.json(
-        { error: "Configuración del servidor incompleta." },
+        { error: "Error al guardar los datos." },
         { status: 500 }
       );
     }
 
-    // ✅ Configuración SMTP
+    const leadId = result.rows[0].id;
+
+    // ✅ Validación variables entorno
+    const {
+      SMTP_HOST,
+      SMTP_PORT,
+      SMTP_USER,
+      SMTP_PASS,
+      CONTACT_RECEIVER,
+    } = process.env;
+
+    if (!SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASS || !CONTACT_RECEIVER) {
+      console.error("Variables SMTP faltantes.");
+      return NextResponse.json(
+        { error: "Configuración de servidor incompleta." },
+        { status: 500 }
+      );
+    }
+
+    // ✅ Configuración SMTP robusta
     const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT),
-      secure: false,
+      host: SMTP_HOST,
+      port: Number(SMTP_PORT),
+      secure: Number(SMTP_PORT) === 465, // true si puerto 465
       auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+        user: SMTP_USER,
+        pass: SMTP_PASS,
       },
     });
 
-    // ✅ Envío de correo
+    // ✅ Verifica conexión SMTP antes de enviar
+    await transporter.verify();
+
     await transporter.sendMail({
-      from: `"Formulario Web" <${process.env.SMTP_USER}>`,
-      to: process.env.CONTACT_RECEIVER,
+      from: `"Formulario Web" <${SMTP_USER}>`,
+      to: CONTACT_RECEIVER,
       subject: `Nuevo Lead #${leadId}`,
       html: `
         <h2>Nuevo Lead</h2>
@@ -94,10 +161,10 @@ export async function POST(req: NextRequest) {
       `,
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true }, { status: 200 });
 
-  } catch (error) {
-    console.error("Error en contacto:", error);
+  } catch (error: any) {
+    console.error("Error en API /api/contact:", error?.message || error);
 
     return NextResponse.json(
       { error: "Error interno del servidor." },

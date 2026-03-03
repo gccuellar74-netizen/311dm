@@ -6,6 +6,8 @@ import Link from "next/link";
 import { FaFacebookF, FaWhatsapp, FaInstagram } from "react-icons/fa";
 import "./globals.css";
 
+
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
