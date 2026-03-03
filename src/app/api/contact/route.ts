@@ -3,78 +3,83 @@ import nodemailer from "nodemailer";
 import { query } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
 
-
 /**
  * POST /api/contact
- * Recibe datos del formulario de contacto,
- * valida, guarda en BD y envía notificación.
+ * Procesa formulario de contacto:
+ * - Rate limit
+ * - Verificación reCAPTCHA
+ * - Validaciones
+ * - Guardado en BD
+ * - Envío de correo
  */
-
 
 export async function POST(req: NextRequest) {
   try {
+    // ✅ Obtener IP real en Vercel
+    const ip =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      "unknown";
 
-    // Obtener IP real en Vercel
-const ip =
-  req.headers.get("x-forwarded-for")?.split(",")[0] ||
-  "unknown";
+    // ✅ Rate limiting
+    const limit = await rateLimit(ip);
 
-// ✅ Rate limiting
-const limit = await rateLimit(ip);
-
-if (!limit.success) {
-  return NextResponse.json(
-    { error: "Demasiadas solicitudes. Intenta nuevamente más tarde." },
-    { status: 429 }
-  );
-}
+    if (!limit.success) {
+      return NextResponse.json(
+        { error: "Demasiadas solicitudes. Intenta nuevamente más tarde." },
+        { status: 429 }
+      );
+    }
 
     const body = await req.json();
-        const { recaptchaToken } = body;
 
-        if (!recaptchaToken) {
-          return NextResponse.json(
-            { error: "Token de reCAPTCHA faltante." },
-            { status: 400 }
-          );
-        }
+    const {
+      nombre,
+      email,
+      telefono,
+      mensaje,
+      recaptchaToken,
+    } = body;
 
-        // Verificación con Google
-        const recaptchaResponse = await fetch(
-          "https://www.google.com/recaptcha/api/siteverify",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded",
-            },
-            body: `secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`,
-          }
-        );
+    // ✅ Validar token
+    if (!recaptchaToken) {
+      return NextResponse.json(
+        { error: "Token de reCAPTCHA faltante." },
+        { status: 400 }
+      );
+    }
 
-        const recaptchaData = await recaptchaResponse.json();
+    // ✅ Verificación reCAPTCHA
+    const recaptchaResponse = await fetch(
+      "https://www.google.com/recaptcha/api/siteverify",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          secret: process.env.RECAPTCHA_SECRET_KEY || "",
+          response: recaptchaToken,
+        }),
+      }
+    );
 
-        // Validar score (v3 usa score)
-        if (!recaptchaData.success || recaptchaData.score < 0.5) {
-          return NextResponse.json(
-            { error: "Verificación reCAPTCHA fallida." },
-            { status: 403 }
-          );
-        }
-    let { nombre, email, telefono, mensaje } = body as {
-      nombre: string;
-      email: string;
-      telefono: string;
-      mensaje: string;
-    };
+    const recaptchaData = await recaptchaResponse.json();
 
-    // ✅ Sanitización básica contra XSS
-    nombre = nombre?.trim();
-    email = email?.trim().toLowerCase();
-    telefono = telefono?.trim();
-    mensaje = mensaje?.trim();
+    if (!recaptchaData.success) {
+      console.error("reCAPTCHA error:", recaptchaData);
+      return NextResponse.json(
+        { error: "Verificación reCAPTCHA fallida." },
+        { status: 403 }
+      );
+    }
 
-    // ✅ Validación de campos obligatorios
-    if (!nombre || !email || !telefono || !mensaje) {
+    // ✅ Sanitización básica
+    const cleanNombre = nombre?.trim();
+    const cleanEmail = email?.trim().toLowerCase();
+    const cleanTelefono = telefono?.trim();
+    const cleanMensaje = mensaje?.trim();
+
+    if (!cleanNombre || !cleanEmail || !cleanTelefono || !cleanMensaje) {
       return NextResponse.json(
         { error: "Todos los campos son obligatorios." },
         { status: 400 }
@@ -83,7 +88,7 @@ if (!limit.success) {
 
     // ✅ Validación email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(cleanEmail)) {
       return NextResponse.json(
         { error: "Email inválido." },
         { status: 400 }
@@ -92,22 +97,28 @@ if (!limit.success) {
 
     // ✅ Validación teléfono
     const phoneRegex = /^[0-9+ ]{7,15}$/;
-    if (!phoneRegex.test(telefono)) {
+    if (!phoneRegex.test(cleanTelefono)) {
       return NextResponse.json(
         { error: "Teléfono inválido." },
         { status: 400 }
       );
     }
 
-    // ✅ Insert seguro (protección contra SQL Injection)
+    // ✅ Insert seguro en BD
     const result = await query(
       `INSERT INTO leads (nombre, email, telefono, mensaje)
        VALUES ($1, $2, $3, $4)
        RETURNING id`,
-      [nombre, email, telefono, mensaje]
+      [cleanNombre, cleanEmail, cleanTelefono, cleanMensaje]
     );
 
-    if (!result || !result.rows || result.rows.length === 0) {
+    // ✅ Validación flexible del resultado
+    const leadId =
+      result?.rows?.[0]?.id ||
+      result?.[0]?.id ||
+      null;
+
+    if (!leadId) {
       console.error("Error al insertar en BD:", result);
       return NextResponse.json(
         { error: "Error al guardar los datos." },
@@ -115,9 +126,7 @@ if (!limit.success) {
       );
     }
 
-    const leadId = result.rows[0].id;
-
-    // ✅ Validación variables entorno
+    // ✅ Validar variables SMTP
     const {
       SMTP_HOST,
       SMTP_PORT,
@@ -134,19 +143,21 @@ if (!limit.success) {
       );
     }
 
-    // ✅ Configuración SMTP robusta
     const transporter = nodemailer.createTransport({
       host: SMTP_HOST,
       port: Number(SMTP_PORT),
-      secure: Number(SMTP_PORT) === 465, // true si puerto 465
+      secure: Number(SMTP_PORT) === 465,
       auth: {
         user: SMTP_USER,
         pass: SMTP_PASS,
       },
     });
 
-    // ✅ Verifica conexión SMTP antes de enviar
     await transporter.verify();
+
+    // ✅ Escape básico para evitar inyección HTML
+    const escapeHtml = (text: string) =>
+      text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
     await transporter.sendMail({
       from: `"Formulario Web" <${SMTP_USER}>`,
@@ -154,18 +165,17 @@ if (!limit.success) {
       subject: `Nuevo Lead #${leadId}`,
       html: `
         <h2>Nuevo Lead</h2>
-        <p><strong>Nombre:</strong> ${nombre}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Teléfono:</strong> ${telefono}</p>
-        <p><strong>Mensaje:</strong><br/>${mensaje}</p>
+        <p><strong>Nombre:</strong> ${escapeHtml(cleanNombre)}</p>
+        <p><strong>Email:</strong> ${escapeHtml(cleanEmail)}</p>
+        <p><strong>Teléfono:</strong> ${escapeHtml(cleanTelefono)}</p>
+        <p><strong>Mensaje:</strong><br/>${escapeHtml(cleanMensaje)}</p>
       `,
     });
 
     return NextResponse.json({ success: true }, { status: 200 });
 
   } catch (error: any) {
-    console.error("Error en API /api/contact:", error?.message || error);
-
+    console.error("Error en API /api/contact:", error);
     return NextResponse.json(
       { error: "Error interno del servidor." },
       { status: 500 }
