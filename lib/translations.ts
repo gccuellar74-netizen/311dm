@@ -155,24 +155,59 @@ export const translations: Record<Language, TranslationsSchema> = {
         "We measure, analyze, and scale what generates real results.",
     },
 
-    pricing: {
-      title: "Growth Plans",
-      subtitle: "Flexible strategies tailored to your business goals.",
-      plans: [
-        {
-          name: "Starter",
-          description:
-            "Ideal for businesses that want to build a solid digital foundation.",
-          features: [
-            "Meta & Google Ads Setup",
-            "Basic Funnel System",
-            "Conversion Tracking",
-            "Monthly Report",
-          ],
-          cta: "Start Building",
-        },
+ pricing: {
+  title: "Growth Plans",
+  subtitle: "Flexible strategies tailored to your business goals.",
+  plans: [
+    {
+      name: "Starter Momentum",
+      description:
+        "For new businesses or those with minimal presence. Start strong and grow with clarity.",
+      features: [
+        "Initial profile optimization (Facebook, Instagram, Google Business)",
+        "Brand tone definition and base visual style",
+        "8 monthly contents (2 per week): educational, awareness & FAQs",
+        "1 ad created per month (Ad spend not included)",
+        "Basic metrics setup",
+        "Quick monthly review",
+        "Goal: Brand awareness + first leads"
       ],
+      cta: "Start Strong",
     },
+    {
+      name: "Growth Engine",
+      description:
+        "For businesses seeking consistent sales. Turn traffic into customers.",
+      features: [
+        "Basic automation: auto-messages & simple follow-up",
+        "Advanced local SEO (Google Business + local keywords)",
+        "Basic CRM implementation",
+        "12 monthly contents (3 per week): educational, social proof & objections",
+        "2 ads per month (Ad spend not included)",
+        "Campaign review every 14 days",
+        "Local collaborations if applicable",
+        "Goal: Consistent lead generation"
+      ],
+      cta: "Accelerate Growth",
+    },
+    {
+      name: "Authority Accelerator",
+      description:
+        "For businesses ready to dominate their category in San Antonio.",
+      features: [
+        "Strategic authority content production",
+        "16 monthly contents (4 per week): leadership, value & differentiation",
+        "Full lead capture system: landing page, simple funnel & remarketing",
+        "3 ads per month (Ad spend not included)",
+        "Advanced monthly report (Lead Quality, CAC, ROAS)",
+        "Strategic topic planning based on FAQs & insights",
+        "Goal: Local authority + sustainable sales"
+      ],
+      cta: "Dominate Your Market",
+    },
+    
+  ],
+},
 
     roi: {
       title: "ROI Calculator",
@@ -207,17 +242,17 @@ export const translations: Record<Language, TranslationsSchema> = {
         seo: {
           title: "SEO Optimization",
           description:
-            "Improve visibility and generate organic leads.",
+            "We improve your visibility in search engines through strategic keyword research, on-page optimization, technical improvements, and local SEO positioning. Our approach ensures your business appears when potential customers actively search for your services, generating consistent organic traffic and high-intent leads over time.",
         },
         ads: {
           title: "Paid Advertising",
           description:
-            "Data-driven campaigns to maximize ROI.",
+            "We design and manage data-driven advertising campaigns across Meta and Google platforms to attract qualified prospects. From audience segmentation and creative strategy to conversion tracking and performance optimization, we focus on maximizing ROI and scaling what delivers measurable results.",
         },
         conversion: {
           title: "Conversion Strategy",
           description:
-            "Landing pages engineered to convert traffic.",
+            "We build high-converting landing pages and optimized sales funnels engineered to turn visitors into leads and customers. Through behavioral analysis, persuasive copywriting, and performance testing, we eliminate friction and increase your conversion rate systematically.",
         },
       },
     },
@@ -273,25 +308,60 @@ export const translations: Record<Language, TranslationsSchema> = {
         "Medimos y escalamos resultados.",
     },
 
-    pricing: {
-      title: "Planes de Crecimiento",
-      subtitle:
-        "Estrategias adaptadas a los objetivos de tu negocio.",
-      plans: [
-        {
-          name: "Starter",
-          description:
-            "Ideal para negocios que desean comenzar a generar leads.",
-          features: [
-            "Configuración Meta & Google Ads",
-            "Embudo Básico",
-            "Tracking",
-            "Reporte Mensual",
-          ],
-          cta: "Comenzar Ahora",
-        },
+ pricing: {
+  title: "Planes de Crecimiento",
+  subtitle:
+    "Estrategias adaptadas a los objetivos de tu negocio.",
+  plans: [
+    {
+      name: "Starter Momentum",
+      description:
+        "Para negocios nuevos o con presencia mínima. Comienza fuerte y crece con claridad.",
+      features: [
+        "Optimización inicial de perfiles (Facebook, Instagram, Google Business)",
+        "Definición de tono de comunicación y estilo visual base",
+        "8 contenidos mensuales (2 por semana): educativos, awareness y FAQs",
+        "1 anuncio mensual creado (sin presupuesto de Ads)",
+        "Configuración de métricas básicas",
+        "Revisión mensual rápida",
+        "Objetivo: reconocimiento + primeros leads"
       ],
+      cta: "Comenzar Fuerte",
     },
+    {
+      name: "Growth Engine",
+      description:
+        "Para negocios que buscan ventas constantes. Convierte el tráfico en clientes.",
+      features: [
+        "Automatización básica: mensajes automáticos y follow-up simple",
+        "SEO local avanzado (Google Business + palabras clave locales)",
+        "CRM básico implementado",
+        "12 contenidos mensuales (3 por semana): educativos, prueba social y objeciones",
+        "2 anuncios mensuales (sin presupuesto de Ads)",
+        "Revisión de campañas cada 14 días",
+        "Colaboraciones locales si aplica",
+        "Objetivo: generación de leads constante"
+      ],
+      cta: "Acelerar Crecimiento",
+    },
+    {
+      name: "Authority Accelerator",
+      description:
+        "Para negocios que quieren dominar su categoría en San Antonio.",
+      features: [
+        "Producción de contenido estratégico de autoridad",
+        "16 contenidos mensuales (4 por semana): liderazgo, valor y diferenciación",
+        "Sistema completo de captación: landing, funnel simple y remarketing",
+        "3 anuncios mensuales (sin presupuesto de Ads)",
+        "Reporte mensual avanzado (Lead Quality, CAC, ROAS)",
+        "Agenda estratégica basada en FAQs e insights del cliente",
+        "Objetivo: liderazgo local + ventas sostenidas"
+      ],
+      cta: "Dominar el Mercado",
+    },
+    
+  ],
+},
 
     roi: {
       title: "Calculadora ROI",
@@ -321,22 +391,22 @@ export const translations: Record<Language, TranslationsSchema> = {
     services: {
       title: "Nuestros Servicios",
       subtitle:
-        "Soluciones estratégicas de marketing digital.",
+        "Mejoramos tu visibilidad en buscadores mediante investigación estratégica de palabras clave, optimización técnica, estructura de contenido y posicionamiento local. Nuestro enfoque permite que tu negocio aparezca cuando los clientes potenciales buscan activamente tus servicios, generando tráfico orgánico constante y leads de alta intención.",
       items: {
         seo: {
           title: "Optimización SEO",
           description:
-            "Mejora tu visibilidad en buscadores.",
+            "Mejoramos tu visibilidad en buscadores mediante investigación estratégica de palabras clave, optimización técnica, estructura de contenido y posicionamiento local. Nuestro enfoque permite que tu negocio aparezca cuando los clientes potenciales buscan activamente tus servicios, generando tráfico orgánico constante y leads de alta intención.",
         },
         ads: {
           title: "Publicidad Pagada",
           description:
-            "Campañas para maximizar el ROI.",
+            "Diseñamos y gestionamos campañas publicitarias basadas en datos en plataformas como Meta y Google para atraer prospectos calificados. Desde la segmentación estratégica y creatividad hasta el seguimiento de conversiones y optimización continua, nos enfocamos en maximizar el retorno de inversión y escalar lo que realmente funciona.",
         },
         conversion: {
           title: "Estrategia de Conversión",
           description:
-            "Embudo optimizado para convertir.",
+            "Creamos landing pages y embudos optimizados diseñados para convertir visitantes en leads y clientes. Mediante análisis de comportamiento, copy persuasivo y pruebas constantes, reducimos fricción y aumentamos tu tasa de conversión de manera sistemática.",
         },
       },
     },

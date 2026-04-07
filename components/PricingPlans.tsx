@@ -3,14 +3,15 @@
 import { motion } from "framer-motion";
 import { useLanguage } from "@/components/context/LanguageContext";
 import { translations } from "@/lib/translations";
+import { useRouter } from "next/navigation";
 
 export default function PricingPlans() {
   const { lang } = useLanguage();
   const t = translations[lang].pricing;
+  const router = useRouter();
 
   return (
     <section className="relative py-24 px-6 bg-black">
-
       <div className="max-w-6xl mx-auto text-center">
 
         {/* Title */}
@@ -38,25 +39,31 @@ export default function PricingPlans() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: index * 0.2 }}
               viewport={{ once: true }}
-              className="relative p-8 rounded-2xl bg-white/5 border border-white/10 hover:border-indigo-500/40 transition-all duration-300 backdrop-blur-md"
+              className="relative p-8 rounded-2xl bg-white/5 border border-white/10 hover:border-indigo-500/40 transition-all duration-300 backdrop-blur-md flex flex-col"
             >
               <h3 className="text-2xl font-semibold mb-4">
                 {plan.name}
               </h3>
 
-
-
               <p className="text-gray-300 mb-6">
                 {plan.description}
               </p>
 
-              <ul className="space-y-3 mb-8 text-sm text-gray-400">
+              <ul className="space-y-3 mb-8 text-sm text-gray-400 flex-grow">
                 {plan.features.map((feature, i) => (
                   <li key={i}>• {feature}</li>
                 ))}
               </ul>
 
-              <button className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 transition-all duration-300 font-semibold">
+              <button
+                type="button"
+                onClick={() =>
+                  router.push(
+                    `/contact?plan=${encodeURIComponent(plan.name)}`
+                  )
+                }
+                className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 transition-all duration-300 font-semibold"
+              >
                 {plan.cta}
               </button>
             </motion.div>
